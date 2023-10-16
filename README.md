@@ -1,3 +1,31 @@
+## Bochs fork for MDA/VGA dual-monitor support
+
+There are use cases for emulating a dual-monitor setup, where e.g. a debugger
+is using MDA/Hercules video while the program being debugged is using a graphics
+mode on the VGA adapter.
+
+This is implemented by...
+  - capturing memory access to MDA character memory (0xb0000..0xb1f3f for a
+    80x50 screen);
+  - handling output to the MDA index and data ports (0x3b4 and 0x3b5) in order
+    to track cursor position;
+  - rendering the MDA character screen to a named pipe.
+
+On startup, the modified Bochs checks the `MDA_PIPE` environment variable for a
+path to a named pipe. When this env var is present, the MDA character screen is
+written to the pipe on every VGA update. In order for this not to block execution,
+a program that polls the pipe for data and reads this data from the FIFO queue
+needs to be running on the host.
+
+The data written to the pipe on every update is an 80x50 screen where each row
+(except the last row) is followed by a newline (`\n`) character, characters are
+in CP437 (DOS codepage) encoding, and MDA attributes are rendered using ANSI
+escape sequences.
+
+A sample program that displays the MDA character screen, and includes conversion
+from CP437 to UTF-8 for output on the host's UTF-8 terminal emulator, is provided
+in []().
+
 # Welcome to the Bochs IA-32 Emulator Project
 
 Bochs is a portable IA-32 (x86) PC emulator written in C++,
