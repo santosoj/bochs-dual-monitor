@@ -1083,6 +1083,21 @@ bx_devices_c::inp(Bit16u addr, unsigned io_len)
   void BX_CPP_AttrRegparmN(3)
 bx_devices_c::outp(Bit16u addr, Bit32u value, unsigned io_len)
 {
+  static Bit8u mda_reg = 0xff;
+
+  /**
+   * Track MDA cursor address on writes to ports 0x3b4, 0x3b5.
+   */
+  if (addr == MDA_PORT_INDEX) {
+    mda_reg = value;
+  } else if (addr == MDA_PORT_DATA) {
+    if (mda_reg == MDA_REG_CURSADDR_MSB) {
+      mda_cursor_addr = ((Bit16u)value << 8) | (mda_cursor_addr & 255);
+    } else if (mda_reg == MDA_REG_CURSADDR_LSB) {
+      mda_cursor_addr = (mda_cursor_addr & 0xff00) | (Bit8u)value;
+    }
+  }
+
   struct io_handler_struct *io_write_handler;
 
   BX_INSTR_OUTP(addr, io_len, value);

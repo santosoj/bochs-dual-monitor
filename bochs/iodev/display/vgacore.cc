@@ -2365,6 +2365,85 @@ void bx_vgacore_c::refresh_display(void *this_ptr, bool redraw)
   vga_timer_handler(vgadev);
 }
 
+#define MDA_ATTR_CONCEAL 0x00
+#define MDA_ATTR_REGULAR 0x07
+#define MDA_ATTR_BRIGHT 0x0f
+#define MDA_ATTR_REVERSE 0x70
+
+const char* ANSI_ATTR_BRIGHT = "\33[0;40;92m";
+const char* ANSI_ATTR_CONCEAL = "\33[0;40;8m";
+const char* ANSI_ATTR_CURSOR = "\33[0;46;97m";
+const char* ANSI_ATTR_RESET = "\33[0;40;32m";
+const char* ANSI_ATTR_REVERSE = "\33[0;42;30m";
+
+/**
+ * Write MDA character page to named pipe.
+ * Path to named pipe is read from env var MDA_PIPE on Bochs start.
+ * Attributes and cursor are rendered using ANSI escape sequences.
+ * This blocks when there is no consumer reading from the pipe,
+ * so when MDA_PIPE is set, consumer should be running.
+ */
+void dump_mda()
+{
+  if (!mda_pipe_name)  // No MDA_PIPE env var? Bail.
+    return;
+
+  Bit8u *pch = mda_character_page;
+
+  Bit16u curs_row = mda_cursor_addr / 80;
+  Bit16u curs_col = mda_cursor_addr % 80;
+
+  Bit8u prev_attr = 0x07;
+  const char *prev_ansi = ANSI_ATTR_RESET;
+
+  FILE *f = fopen(mda_pipe_name, "w");
+  fputs(ANSI_ATTR_RESET, f);
+  int row, col;
+  for (row=0; row<50; row++) {
+    bool incursrow = row == curs_row;
+    for (col=0; col<80; col++, pch+=2) {
+      char display_char = (
+        (*pch >= 32 && *pch != 127)
+        ? *pch
+        : '?'
+      );
+      Bit8u attr = *(pch+1);
+
+      bool incurspos = incursrow && col == curs_col;
+      if (incurspos)
+        fputs(ANSI_ATTR_CURSOR, f);
+      else if (attr != prev_attr) {
+        prev_attr = attr;
+        switch (attr) {
+          case MDA_ATTR_CONCEAL:
+            prev_ansi = ANSI_ATTR_CONCEAL;
+            break;
+          case MDA_ATTR_REGULAR:
+            prev_ansi = ANSI_ATTR_RESET;
+            break;
+          case MDA_ATTR_BRIGHT:
+            prev_ansi = ANSI_ATTR_BRIGHT;
+            break;
+          case MDA_ATTR_REVERSE:
+            prev_ansi = ANSI_ATTR_REVERSE;
+            break;
+          default:
+            prev_ansi = ANSI_ATTR_RESET;
+        }
+        fputs(prev_ansi, f);
+      }
+
+      fputc(display_char, f);
+
+      if (incurspos)
+        fputs(prev_ansi, f);
+    }
+    if (row != 49)
+      fputc('\n', f);
+  }
+  fclose(f);
+}
+
 void bx_vgacore_c::vga_timer_handler(void *this_ptr)
 {
   bx_vgacore_c *vgadev = (bx_vgacore_c *) this_ptr;
@@ -2377,6 +2456,7 @@ void bx_vgacore_c::vga_timer_handler(void *this_ptr)
   {
     vgadev->update();
   }
+  dump_mda();
   bx_gui->flush();
 }
 

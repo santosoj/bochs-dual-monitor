@@ -365,4 +365,16 @@ void bx_center_print(FILE *file, const char *line, unsigned maxwidth);
 
 #include "misc/bswap.h"
 
+#define MDA_CHAR_START 0xb0000
+#define MDA_CHAR_END  0xb1f3f
+
+#define MDA_PORT_INDEX 0x3b4
+#define MDA_PORT_DATA 0x3b5
+#define MDA_REG_CURSADDR_MSB 0xe
+#define MDA_REG_CURSADDR_LSB 0xf
+
+extern Bit8u mda_character_page[];
+extern Bit16u mda_cursor_addr;
+extern const char *mda_pipe_name;
+
 #endif  /* BX_BOCHS_H */

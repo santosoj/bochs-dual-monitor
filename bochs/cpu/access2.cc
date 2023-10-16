@@ -52,6 +52,12 @@ BX_CPU_C::write_linear_byte(unsigned s, bx_address laddr, Bit8u data)
   void BX_CPP_AttrRegparmN(3)
 BX_CPU_C::write_linear_word(unsigned s, bx_address laddr, Bit16u data)
 {
+  if (laddr >= MDA_CHAR_START && laddr <= MDA_CHAR_END) {
+    unsigned offset = laddr - MDA_CHAR_START;
+    mda_character_page[offset] = (Bit8u)data;
+    mda_character_page[offset+1] = (Bit8u)(data >> 8);
+  }
+
   bx_TLB_entry *tlbEntry = BX_DTLB_ENTRY_OF(laddr, 1);
 #if BX_SUPPORT_ALIGNMENT_CHECK && BX_CPU_LEVEL >= 4
   bx_address lpf = AlignedAccessLPFOf(laddr, (1 & BX_CPU_THIS_PTR alignment_check_mask));
@@ -371,6 +377,14 @@ BX_CPU_C::read_linear_byte(unsigned s, bx_address laddr)
   Bit16u BX_CPP_AttrRegparmN(2)
 BX_CPU_C::read_linear_word(unsigned s, bx_address laddr)
 {
+
+  if (laddr >= MDA_CHAR_START && laddr <= MDA_CHAR_END) {
+    unsigned offset = laddr - MDA_CHAR_START;
+    Bit8u ln = mda_character_page[offset];
+    Bit8u hn = mda_character_page[offset+1];
+    return ((Bit16u)hn << 8) | ln;
+  }
+
   Bit16u data;
 
   bx_TLB_entry *tlbEntry = BX_DTLB_ENTRY_OF(laddr, 1);

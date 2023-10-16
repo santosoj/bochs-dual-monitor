@@ -100,6 +100,28 @@ BOCHSAPI BX_CPU_C bx_cpu;
 
 BOCHSAPI BX_MEM_C bx_mem;
 
+/**
+ * MDA character page, 80x50 (0xb0000..0xb1f3f).
+ * Even addresses = characters, odd addresses = attributes.
+ */
+Bit8u mda_character_page[2 * 80 * 50];
+
+/**
+ * 80*row + col.
+ * Set by:
+ *   outp(0x3b4, 0xe)
+ *   outp(0x3b5, <MSB>)
+ *   outp(0x3b4, 0xf)
+ *   outp(0x3b5, <LSB>)
+ */
+Bit16u mda_cursor_addr;
+
+/**
+ * When env var MDA_PIPE holds the path to a named pipe,
+ * MDA character page will be written to this pipe.
+ */
+const char *mda_pipe_name = getenv("MDA_PIPE");
+
 char *bochsrc_filename = NULL;
 
 size_t bx_get_timestamp(char *buffer)
@@ -305,6 +327,12 @@ void print_statistics_tree(bx_param_c *node, int level)
 
 int bxmain(void)
 {
+  if (mda_pipe_name) {
+    printf("[MDA] Using named pipe \"%s\".\n", mda_pipe_name);
+  } else {
+    printf("[MDA] No named pipe specified in env var MDA_PIPE.\n");
+  }
+
 #ifdef HAVE_LOCALE_H
   // Initialize locale (for isprint() and other functions)
   setlocale (LC_ALL, "");
