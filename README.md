@@ -24,7 +24,7 @@ escape sequences.
 
 A sample program that displays the MDA character screen, and includes conversion
 from CP437 to UTF-8 for output on the host's UTF-8 terminal emulator, is provided
-in []().
+in [mda_viewer](mda_viewer/__main__.py).
 
 # Welcome to the Bochs IA-32 Emulator Project
 
