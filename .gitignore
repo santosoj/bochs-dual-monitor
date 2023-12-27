@@ -9,6 +9,7 @@ obj-debug/
 obj-release/
 .vscode
 bochs-msvc-src.zip
+__pycache__
 
 # /bochs/
 /bochs/Makefile
